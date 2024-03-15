@@ -6,8 +6,16 @@ import logging
 import numpy as np
 import torch
 from nemo.collections.asr.models import ASRModel
+from omegaconf import OmegaConf
 
+# Set device
 DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+
+# Create a DictConfig for greedy decoding
+greedy_decoding_cfg = OmegaConf.create({
+    'strategy': 'greedy',
+    # Add other necessary configuration parameters here
+})
 
 
 def model_fn(model_dir):
@@ -16,6 +24,7 @@ def model_fn(model_dir):
     """
     model = ASRModel.restore_from(os.path.join(model_dir, 'reazonspeech-nemo-v2.nemo'))
     model = model.to(DEVICE)
+    model.change_decoding_strategy(greedy_decoding_cfg)
     return {'model': model}
 
 
@@ -36,8 +45,8 @@ def predict_fn(input_data, model_dict):
 
     Return predictions
     """
-    result = model_dict['model'].transcribe(input_data)
-    return result[0][0]
+    greedy_reults, _ = model_dict['model'].transcribe(input_data, verbose=False)
+    return greedy_reults[0]
 
 
 def output_fn(predictions, content_type):
